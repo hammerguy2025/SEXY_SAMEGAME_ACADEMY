@@ -598,6 +598,7 @@ namespace SameGame.Runtime
         {
             RefreshLocalizedButtons();
             RefreshTitleLogoForLanguage();
+            RefreshTitlePlatformButtons(true);
             RefreshMainMenuStatus();
             RefreshOptionsPanel();
             RefreshCharacterSelectPanel();

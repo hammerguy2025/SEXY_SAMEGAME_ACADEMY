@@ -42,11 +42,15 @@ namespace SameGame.Runtime
         private int _currentStageSeed;
         private int _currentScore;
         private int _seedCounter;
+        private bool _lastKnownBrowserFullscreenState;
 
         private Canvas _canvas;
         private RectTransform _layoutRoot;
         private GameObject _titlePanel;
         private Text _titleStatusText;
+        private Button _titleQuitButton;
+        private Button _titleFullscreenButton;
+        private Text _titleFullscreenButtonLabel;
         private GameObject _hudRoot;
         private Text _scoreText;
         private Text _stageText;
@@ -164,6 +168,11 @@ namespace SameGame.Runtime
                 {
                     _resultPopup.SetActive(false);
                 }
+            }
+
+            if (_state == AppState.Title)
+            {
+                RefreshTitlePlatformButtons();
             }
 
             RefreshBoardForLayoutChanges();

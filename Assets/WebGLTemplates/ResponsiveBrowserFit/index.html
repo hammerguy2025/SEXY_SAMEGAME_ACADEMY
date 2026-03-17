@@ -21,7 +21,6 @@
           </div>
         </div>
         <div id="unity-warning"></div>
-        <button id="unity-fullscreen-button" type="button">Full Screen</button>
       </div>
     </div>
     <script>
@@ -132,8 +131,8 @@
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = `${100 * progress}%`;
         }).then((unityInstance) => {
+          window.sameGameUnityInstance = unityInstance;
           document.querySelector("#unity-loading-bar").style.display = "none";
-          document.querySelector("#unity-fullscreen-button").onclick = () => unityInstance.SetFullscreen(1);
         }).catch((message) => {
           alert(message);
         });

@@ -84,6 +84,11 @@ namespace SameGame.Runtime
 
         private void ApplyAudioVolumes()
         {
+            if (UseBrowserBgmPlayback())
+            {
+                SetBrowserBgmVolume(_bgmVolume);
+            }
+
             if (_bgmPrimarySource != null && _bgmSwitchRoutine == null)
             {
                 _bgmPrimarySource.volume = _bgmPrimarySource.isPlaying ? (_bgmPrimarySource == _activeBgmSource ? _bgmVolume : 0f) : 0f;
@@ -156,6 +161,13 @@ namespace SameGame.Runtime
             }
 
             _requestedBgmClipKey = clipKey;
+
+            if (UseBrowserBgmPlayback())
+            {
+                _currentBgmClipKey = clipKey;
+                PlayBrowserBgm(BuildStreamingAssetUrl(BgmStreamingRoot + "/" + clipKey), _bgmVolume);
+                return;
+            }
 
             if (TryGetCachedBgmClip(clipKey, out var clip))
             {
@@ -416,6 +428,14 @@ namespace SameGame.Runtime
 
         private void StopStageBgm()
         {
+            if (UseBrowserBgmPlayback())
+            {
+                _requestedBgmClipKey = string.Empty;
+                _currentBgmClipKey = string.Empty;
+                StopBrowserBgm();
+                return;
+            }
+
             StopBgmCoroutines();
             _requestedBgmClipKey = string.Empty;
             _currentBgmClipKey = string.Empty;

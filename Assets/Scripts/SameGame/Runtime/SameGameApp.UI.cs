@@ -212,9 +212,14 @@ namespace SameGame.Runtime
             optionsButton.onClick.AddListener(OpenOptions);
             LayoutTitleButton(optionsButton, 740f);
 
-            var quitButton = CreateButton(_titlePanel.transform, "やめる", new Color(0.34f, 0.38f, 0.48f, 1f));
-            quitButton.onClick.AddListener(RequestQuit);
-            LayoutTitleButton(quitButton, 856f);
+            _titleFullscreenButton = CreateButton(_titlePanel.transform, "フルスクリーン", new Color(0.2f, 0.29f, 0.46f, 1f), false);
+            _titleFullscreenButton.onClick.AddListener(ToggleTitleFullscreen);
+            _titleFullscreenButtonLabel = _titleFullscreenButton.GetComponentInChildren<Text>(true);
+            LayoutTitleButton(_titleFullscreenButton, 856f);
+
+            _titleQuitButton = CreateButton(_titlePanel.transform, "やめる", new Color(0.34f, 0.38f, 0.48f, 1f));
+            _titleQuitButton.onClick.AddListener(RequestQuit);
+            LayoutTitleButton(_titleQuitButton, 856f);
         }
 
         private void CreateTitleLogoHero(Transform parent)
@@ -240,39 +245,44 @@ namespace SameGame.Runtime
 
         private void ApplyTitlePlatformOverrides()
         {
-            if (ShouldShowQuitButton() || _titlePanel == null)
+            RefreshTitlePlatformButtons(true);
+        }
+
+        private void RefreshTitlePlatformButtons(bool force = false)
+        {
+            if (_titlePanel == null)
             {
                 return;
             }
 
-            var buttons = _titlePanel.GetComponentsInChildren<Button>(true);
-            Button bottomMostButton = null;
-            var bottomMostY = float.PositiveInfinity;
-            for (var i = 0; i < buttons.Length; i++)
+            var showQuitButton = ShouldShowQuitButton();
+            if (_titleQuitButton != null && _titleQuitButton.gameObject.activeSelf != showQuitButton)
             {
-                var button = buttons[i];
-                if (button == null)
-                {
-                    continue;
-                }
-
-                var rect = button.GetComponent<RectTransform>();
-                if (rect == null)
-                {
-                    continue;
-                }
-
-                var anchoredY = rect.anchoredPosition.y;
-                if (anchoredY < bottomMostY)
-                {
-                    bottomMostY = anchoredY;
-                    bottomMostButton = button;
-                }
+                _titleQuitButton.gameObject.SetActive(showQuitButton);
             }
 
-            if (bottomMostButton != null)
+            var showFullscreenButton = ShouldShowFullscreenButton();
+            if (_titleFullscreenButton != null && _titleFullscreenButton.gameObject.activeSelf != showFullscreenButton)
             {
-                bottomMostButton.gameObject.SetActive(false);
+                _titleFullscreenButton.gameObject.SetActive(showFullscreenButton);
+            }
+
+            if (!showFullscreenButton)
+            {
+                _lastKnownBrowserFullscreenState = false;
+                return;
+            }
+
+            var isFullscreen = IsBrowserFullscreen();
+            if (!force && isFullscreen == _lastKnownBrowserFullscreenState)
+            {
+                return;
+            }
+
+            _lastKnownBrowserFullscreenState = isFullscreen;
+            if (_titleFullscreenButtonLabel != null)
+            {
+                _titleFullscreenButtonLabel.text = GetTitleFullscreenButtonLabel(isFullscreen);
             }
         }
 
@@ -298,6 +308,36 @@ namespace SameGame.Runtime
 #else
             return true;
 #endif
+        }
+
+        private static bool ShouldShowFullscreenButton()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return SupportsBrowserFullscreen();
+#else
+            return false;
+#endif
+        }
+
+        private string GetTitleFullscreenButtonLabel(bool isFullscreen)
+        {
+            if (_languageCode == "en")
+            {
+                return isFullscreen ? "Exit Full Screen" : "Full Screen";
+            }
+
+            return isFullscreen ? "フルスクリーン解除" : "フルスクリーン";
+        }
+
+        private void ToggleTitleFullscreen()
+        {
+            if (!ShouldShowFullscreenButton())
+            {
+                return;
+            }
+
+            ToggleBrowserFullscreen();
+            RefreshTitlePlatformButtons(true);
         }
 
         private void TryCreateTitleLogo(Transform parent)
@@ -1335,7 +1375,7 @@ namespace SameGame.Runtime
             return text;
         }
 
-        private Button CreateButton(Transform parent, string label, Color backgroundColor)
+        private Button CreateButton(Transform parent, string label, Color backgroundColor, bool registerLocalized = true)
         {
             var buttonObject = new GameObject("Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
             buttonObject.transform.SetParent(parent, false);
@@ -1360,7 +1400,10 @@ namespace SameGame.Runtime
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             Stretch(text.rectTransform, Vector2.zero, Vector2.one, new Vector2(10f, 8f), new Vector2(-10f, -8f));
-            RegisterLocalizedButton(button, image, text, label, backgroundColor);
+            if (registerLocalized)
+            {
+                RegisterLocalizedButton(button, image, text, label, backgroundColor);
+            }
 
             return button;
         }
