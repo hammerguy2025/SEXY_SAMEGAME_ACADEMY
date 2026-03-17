@@ -10,12 +10,12 @@ namespace SameGame.Runtime
     public sealed partial class SameGameApp
     {
         private const string BgmStreamingRoot = "Audio/Bgm";
-        private const string MenuBgmClipKey = "menu_main.mp3";
-        private const string DefaultStageBgmClipKey = "stage_default.mp3";
-        private const string ElementaryStageBgmClipKey = "stage_elementary.mp3";
-        private const string MiddleStageBgmClipKey = "stage_middle.mp3";
-        private const string HighStageBgmClipKey = "stage_high.mp3";
-        private const string TeacherStageBgmClipKey = "stage_teacher.mp3";
+        private const string MenuBgmClipKey = "menu_main.opus";
+        private const string DefaultStageBgmClipKey = "stage_default.opus";
+        private const string ElementaryStageBgmClipKey = "stage_elementary.opus";
+        private const string MiddleStageBgmClipKey = "stage_middle.opus";
+        private const string HighStageBgmClipKey = "stage_high.opus";
+        private const string TeacherStageBgmClipKey = "stage_teacher.opus";
         private const string BlockClearSeResourcePath = "Audio/Se/block_clear";
         private const string BigBlockClearSeResourcePath = "Audio/Se/block_clear_big";
         private const string StageClearSeResourcePath = "Audio/Se/stage_clear";
@@ -192,7 +192,7 @@ namespace SameGame.Runtime
         private IEnumerator LoadBgmClipRoutine(string clipKey)
         {
             var clipUrl = BuildStreamingAssetUrl(BgmStreamingRoot + "/" + clipKey);
-            var request = UnityWebRequestMultimedia.GetAudioClip(clipUrl, AudioType.MPEG);
+            var request = UnityWebRequestMultimedia.GetAudioClip(clipUrl, GetStreamingAudioType(clipKey));
             yield return request.SendWebRequest();
 
             _bgmLoadRoutine = null;
@@ -450,6 +450,28 @@ namespace SameGame.Runtime
             }
 
             return new Uri(Path.Combine(basePath, normalizedRelativePath)).AbsoluteUri;
+        }
+
+        private static AudioType GetStreamingAudioType(string clipKey)
+        {
+            var extension = Path.GetExtension(clipKey);
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                return AudioType.UNKNOWN;
+            }
+
+            switch (extension.ToLowerInvariant())
+            {
+                case ".mp3":
+                    return AudioType.MPEG;
+                case ".ogg":
+                case ".opus":
+                    return AudioType.OGGVORBIS;
+                case ".wav":
+                    return AudioType.WAV;
+                default:
+                    return AudioType.UNKNOWN;
+            }
         }
 
         private void PlayBlockClearSe(int scoreDelta)

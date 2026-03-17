@@ -302,6 +302,7 @@ namespace SameGame.Runtime
             _state = AppState.Title;
             HideConfirmationDialog();
             SetMenuPanelVisibility(true, false, false, false);
+            ApplyTitlePlatformOverrides();
             _hudRoot.SetActive(false);
             _rewardOverlay.SetActive(false);
             _resultPopup.SetActive(false);

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="unity-page">
+      <div id="unity-frame">
+        <canvas id="unity-canvas" width={{{ WIDTH }}} height={{{ HEIGHT }}} tabindex="-1"></canvas>
+        <div id="unity-loading-bar">
+          <div id="unity-loading-label">Loading...</div>
+          <div id="unity-progress-bar-empty">
+            <div id="unity-progress-bar-full"></div>
+          </div>
+        </div>
+        <div id="unity-warning"></div>
+        <button id="unity-fullscreen-button" type="button">Full Screen</button>
+      </div>
+    </div>
+    <script>
+      const canvas = document.querySelector("#unity-canvas");
+      const frame = document.querySelector("#unity-frame");
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      document.body.classList.toggle("unity-mobile", isMobileDevice);
+
+      function getViewportSize() {
+        if (window.visualViewport) {
+          return {
+            width: window.visualViewport.width,
+            height: window.visualViewport.height,
+          };
+        }
+
+        return {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        };
+      }
+
+      function resizeFrame() {
+        const viewport = getViewportSize();
+        const viewportWidth = viewport.width;
+        const viewportHeight = viewport.height;
+        const targetAspect = 16 / 9;
+
+        let width = viewportWidth;
+        let height = width / targetAspect;
+
+        if (height > viewportHeight) {
+          height = viewportHeight;
+          width = height * targetAspect;
+        }
+
+        frame.style.width = `${Math.floor(width)}px`;
+        frame.style.height = `${Math.floor(height)}px`;
+      }
+
+      function syncViewportBounds() {
+        const viewport = getViewportSize();
+        document.documentElement.style.setProperty("--app-width", `${Math.floor(viewport.width)}px`);
+        document.documentElement.style.setProperty("--app-height", `${Math.floor(viewport.height)}px`);
+        resizeFrame();
+      }
+
+      function collapseMobileBrowserChrome() {
+        if (!isMobileDevice) {
+          return;
+        }
+
+        window.setTimeout(() => window.scrollTo(0, 1), 50);
+        window.setTimeout(() => window.scrollTo(0, 1), 250);
+      }
+
+      function unityShowBanner(message, type) {
+        const warningBanner = document.querySelector("#unity-warning");
+        const banner = document.createElement("div");
+        banner.textContent = message;
+        banner.className = type === "error" ? "unity-banner unity-banner-error" : "unity-banner unity-banner-warning";
+        warningBanner.appendChild(banner);
+        warningBanner.style.display = "flex";
+
+        if (type !== "error") {
+          setTimeout(() => {
+            if (banner.parentNode === warningBanner) {
+              warningBanner.removeChild(banner);
+            }
+
+            if (warningBanner.children.length === 0) {
+              warningBanner.style.display = "none";
+            }
+          }, 5000);
+        }
+      }
+
+      const buildUrl = "Build";
+      const loaderUrl = `${buildUrl}/{{{ LOADER_FILENAME }}}`;
+      const config = {
+        arguments: [],
+        dataUrl: `${buildUrl}/{{{ DATA_FILENAME }}}`,
+        frameworkUrl: `${buildUrl}/{{{ FRAMEWORK_FILENAME }}}`,
+        codeUrl: `${buildUrl}/{{{ CODE_FILENAME }}}`,
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "{{{ COMPANY_NAME }}}",
+        productName: "{{{ PRODUCT_NAME }}}",
+        productVersion: "{{{ PRODUCT_VERSION }}}",
+        showBanner: unityShowBanner,
+      };
+
+      syncViewportBounds();
+      window.addEventListener("resize", syncViewportBounds);
+      window.addEventListener("orientationchange", () => {
+        syncViewportBounds();
+        collapseMobileBrowserChrome();
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", syncViewportBounds);
+      }
+      window.addEventListener("load", collapseMobileBrowserChrome);
+      window.addEventListener("touchstart", collapseMobileBrowserChrome, { passive: true, once: true });
+      document.querySelector("#unity-loading-bar").style.display = "flex";
+
+      const script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = `${100 * progress}%`;
+        }).then((unityInstance) => {
+          document.querySelector("#unity-loading-bar").style.display = "none";
+          document.querySelector("#unity-fullscreen-button").onclick = () => unityInstance.SetFullscreen(1);
+        }).catch((message) => {
+          alert(message);
+        });
+      };
+
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>

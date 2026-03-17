@@ -137,6 +137,7 @@ namespace SameGame.Runtime
             BuildResultPopup(_layoutRoot);
             BuildScorePopupLayer(_layoutRoot);
             BuildConfirmationDialog(_layoutRoot);
+            ApplyTitlePlatformOverrides();
             RefreshLocalizedUi();
         }
 
@@ -237,6 +238,44 @@ namespace SameGame.Runtime
             ApplyTitleLogoSprite(logoImage);
         }
 
+        private void ApplyTitlePlatformOverrides()
+        {
+            if (ShouldShowQuitButton() || _titlePanel == null)
+            {
+                return;
+            }
+
+            var buttons = _titlePanel.GetComponentsInChildren<Button>(true);
+            Button bottomMostButton = null;
+            var bottomMostY = float.PositiveInfinity;
+            for (var i = 0; i < buttons.Length; i++)
+            {
+                var button = buttons[i];
+                if (button == null)
+                {
+                    continue;
+                }
+
+                var rect = button.GetComponent<RectTransform>();
+                if (rect == null)
+                {
+                    continue;
+                }
+
+                var anchoredY = rect.anchoredPosition.y;
+                if (anchoredY < bottomMostY)
+                {
+                    bottomMostY = anchoredY;
+                    bottomMostButton = button;
+                }
+            }
+
+            if (bottomMostButton != null)
+            {
+                bottomMostButton.gameObject.SetActive(false);
+            }
+        }
+
         private void LayoutTitleButton(Button button, float topOffset)
         {
             if (button == null)
@@ -250,6 +289,15 @@ namespace SameGame.Runtime
             rect.pivot = new Vector2(0.5f, 1f);
             rect.anchoredPosition = new Vector2(0f, -topOffset);
             rect.sizeDelta = new Vector2(452f, 96f);
+        }
+
+        private static bool ShouldShowQuitButton()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return false;
+#else
+            return true;
+#endif
         }
 
         private void TryCreateTitleLogo(Transform parent)
