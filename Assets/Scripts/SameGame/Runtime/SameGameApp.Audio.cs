@@ -1,16 +1,21 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace SameGame.Runtime
 {
     public sealed partial class SameGameApp
     {
-        private const string MenuBgmResourcePath = "Audio/Bgm/menu_main";
-        private const string ElementaryStageBgmResourcePath = "Audio/Bgm/stage_elementary";
-        private const string MiddleStageBgmResourcePath = "Audio/Bgm/stage_middle";
-        private const string HighStageBgmResourcePath = "Audio/Bgm/stage_high";
-        private const string TeacherStageBgmResourcePath = "Audio/Bgm/stage_teacher";
+        private const string BgmStreamingRoot = "Audio/Bgm";
+        private const string MenuBgmClipKey = "menu_main.mp3";
+        private const string DefaultStageBgmClipKey = "stage_default.mp3";
+        private const string ElementaryStageBgmClipKey = "stage_elementary.mp3";
+        private const string MiddleStageBgmClipKey = "stage_middle.mp3";
+        private const string HighStageBgmClipKey = "stage_high.mp3";
+        private const string TeacherStageBgmClipKey = "stage_teacher.mp3";
         private const string BlockClearSeResourcePath = "Audio/Se/block_clear";
         private const string BigBlockClearSeResourcePath = "Audio/Se/block_clear_big";
         private const string StageClearSeResourcePath = "Audio/Se/stage_clear";
@@ -31,7 +36,10 @@ namespace SameGame.Runtime
         private AudioClip _stageFailClip;
         private Coroutine _bgmLoopRoutine;
         private Coroutine _bgmSwitchRoutine;
-        private string _currentBgmResourcePath = string.Empty;
+        private Coroutine _bgmLoadRoutine;
+        private string _currentBgmClipKey = string.Empty;
+        private string _requestedBgmClipKey = string.Empty;
+        private string _loadingBgmClipKey = string.Empty;
 
         private void EnsureAudio()
         {
@@ -94,28 +102,28 @@ namespace SameGame.Runtime
 
         private void PlayMenuBgm()
         {
-            PlayBgmResource(MenuBgmResourcePath);
+            PlayBgmClip(MenuBgmClipKey);
         }
 
         private void PlayStageBgm(StageDefinition stage)
         {
             EnsureAudio();
-            var bgmPath = GetStageBgmResourcePath();
-            if (string.IsNullOrWhiteSpace(bgmPath))
+            var bgmClipKey = GetStageBgmClipKey();
+            if (string.IsNullOrWhiteSpace(bgmClipKey))
             {
-                bgmPath = stage != null ? stage.bgmResourcePath : string.Empty;
+                bgmClipKey = stage != null ? stage.bgmResourcePath : string.Empty;
             }
 
-            if (string.IsNullOrWhiteSpace(bgmPath))
+            if (string.IsNullOrWhiteSpace(bgmClipKey))
             {
                 StopStageBgm();
                 return;
             }
 
-            PlayBgmResource(bgmPath);
+            PlayBgmClip(bgmClipKey);
         }
 
-        private string GetStageBgmResourcePath()
+        private string GetStageBgmClipKey()
         {
             var character = GetSelectedCharacter();
             if (character == null)
@@ -126,35 +134,110 @@ namespace SameGame.Runtime
             switch (character.id)
             {
                 case "character_01":
-                    return ElementaryStageBgmResourcePath;
+                    return ElementaryStageBgmClipKey;
                 case "character_02":
-                    return MiddleStageBgmResourcePath;
+                    return MiddleStageBgmClipKey;
                 case "character_03":
-                    return HighStageBgmResourcePath;
+                    return HighStageBgmClipKey;
                 case "character_04":
-                    return TeacherStageBgmResourcePath;
+                    return TeacherStageBgmClipKey;
                 default:
                     return string.Empty;
             }
         }
 
-        private void PlayBgmResource(string resourcePath)
+        private void PlayBgmClip(string clipKey)
         {
             EnsureAudio();
-            if (string.IsNullOrWhiteSpace(resourcePath))
+            if (string.IsNullOrWhiteSpace(clipKey))
             {
                 StopStageBgm();
                 return;
             }
 
-            var clip = LoadBgmClip(resourcePath);
+            _requestedBgmClipKey = clipKey;
+
+            if (TryGetCachedBgmClip(clipKey, out var clip))
+            {
+                PlayResolvedBgmClip(clip, clipKey);
+                return;
+            }
+
+            if (_bgmLoadRoutine != null && _loadingBgmClipKey == clipKey)
+            {
+                return;
+            }
+
+            if (_bgmLoadRoutine != null)
+            {
+                StopCoroutine(_bgmLoadRoutine);
+                _bgmLoadRoutine = null;
+            }
+
+            _loadingBgmClipKey = clipKey;
+            _bgmLoadRoutine = StartCoroutine(LoadBgmClipRoutine(clipKey));
+        }
+
+        private bool TryGetCachedBgmClip(string clipKey, out AudioClip clip)
+        {
+            if (_bgmClipCache.TryGetValue(clipKey, out clip) && clip != null)
+            {
+                return true;
+            }
+
+            clip = null;
+            return false;
+        }
+
+        private IEnumerator LoadBgmClipRoutine(string clipKey)
+        {
+            var clipUrl = BuildStreamingAssetUrl(BgmStreamingRoot + "/" + clipKey);
+            var request = UnityWebRequestMultimedia.GetAudioClip(clipUrl, AudioType.MPEG);
+            yield return request.SendWebRequest();
+
+            _bgmLoadRoutine = null;
+            _loadingBgmClipKey = string.Empty;
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogWarning("Failed to load BGM clip from StreamingAssets: " + clipUrl + "\n" + request.error);
+                if (_requestedBgmClipKey == clipKey)
+                {
+                    StopStageBgm();
+                }
+
+                yield break;
+            }
+
+            var clip = DownloadHandlerAudioClip.GetContent(request);
+            if (clip == null)
+            {
+                if (_requestedBgmClipKey == clipKey)
+                {
+                    StopStageBgm();
+                }
+
+                yield break;
+            }
+
+            clip.name = Path.GetFileNameWithoutExtension(clipKey);
+            _bgmClipCache[clipKey] = clip;
+
+            if (_requestedBgmClipKey == clipKey)
+            {
+                PlayResolvedBgmClip(clip, clipKey);
+            }
+        }
+
+        private void PlayResolvedBgmClip(AudioClip clip, string clipKey)
+        {
             if (clip == null)
             {
                 StopStageBgm();
                 return;
             }
 
-            if (_currentBgmResourcePath == resourcePath &&
+            if (_currentBgmClipKey == clipKey &&
                 _activeBgmSource != null &&
                 _activeBgmSource.isPlaying &&
                 _activeBgmSource.clip == clip)
@@ -163,33 +246,21 @@ namespace SameGame.Runtime
             }
 
             StopBgmCoroutines();
-            _currentBgmResourcePath = resourcePath;
+            _currentBgmClipKey = clipKey;
 
             if (_activeBgmSource == null || !_activeBgmSource.isPlaying || _activeBgmSource.clip == null)
             {
                 StartClipOnSource(_activeBgmSource ?? _bgmPrimarySource, clip, _bgmVolume);
                 _activeBgmSource = _activeBgmSource ?? _bgmPrimarySource;
                 _inactiveBgmSource = GetOtherBgmSource(_activeBgmSource);
-                _bgmLoopRoutine = StartCoroutine(BgmLoopRoutine(_activeBgmSource, resourcePath));
+                _bgmLoopRoutine = StartCoroutine(BgmLoopRoutine(_activeBgmSource, clipKey));
                 return;
             }
 
-            _bgmSwitchRoutine = StartCoroutine(CrossfadeToClip(clip, resourcePath, BgmSwitchFadeDuration));
+            _bgmSwitchRoutine = StartCoroutine(CrossfadeToClip(clip, clipKey, BgmSwitchFadeDuration));
         }
 
-        private AudioClip LoadBgmClip(string resourcePath)
-        {
-            if (_bgmClipCache.TryGetValue(resourcePath, out var clip))
-            {
-                return clip;
-            }
-
-            clip = Resources.Load<AudioClip>(resourcePath);
-            _bgmClipCache[resourcePath] = clip;
-            return clip;
-        }
-
-        private IEnumerator CrossfadeToClip(AudioClip clip, string resourcePath, float fadeDuration)
+        private IEnumerator CrossfadeToClip(AudioClip clip, string clipKey, float fadeDuration)
         {
             var fromSource = _activeBgmSource;
             var toSource = GetOtherBgmSource(fromSource);
@@ -204,7 +275,7 @@ namespace SameGame.Runtime
                 _activeBgmSource = toSource ?? _bgmPrimarySource;
                 _inactiveBgmSource = GetOtherBgmSource(_activeBgmSource);
                 _bgmSwitchRoutine = null;
-                _bgmLoopRoutine = StartCoroutine(BgmLoopRoutine(_activeBgmSource, resourcePath));
+                _bgmLoopRoutine = StartCoroutine(BgmLoopRoutine(_activeBgmSource, clipKey));
                 yield break;
             }
 
@@ -227,14 +298,14 @@ namespace SameGame.Runtime
             _activeBgmSource = toSource;
             _inactiveBgmSource = fromSource;
             _bgmSwitchRoutine = null;
-            _bgmLoopRoutine = StartCoroutine(BgmLoopRoutine(_activeBgmSource, resourcePath));
+            _bgmLoopRoutine = StartCoroutine(BgmLoopRoutine(_activeBgmSource, clipKey));
         }
 
-        private IEnumerator BgmLoopRoutine(AudioSource source, string resourcePath)
+        private IEnumerator BgmLoopRoutine(AudioSource source, string clipKey)
         {
             while (source != null &&
                    source == _activeBgmSource &&
-                   _currentBgmResourcePath == resourcePath &&
+                   _currentBgmClipKey == clipKey &&
                    source.clip != null)
             {
                 var clip = source.clip;
@@ -251,7 +322,7 @@ namespace SameGame.Runtime
                 var endTime = Time.unscaledTime + waitDuration;
                 while (Time.unscaledTime < endTime)
                 {
-                    if (source != _activeBgmSource || _currentBgmResourcePath != resourcePath || source.clip != clip)
+                    if (source != _activeBgmSource || _currentBgmClipKey != clipKey || source.clip != clip)
                     {
                         _bgmLoopRoutine = null;
                         yield break;
@@ -266,7 +337,7 @@ namespace SameGame.Runtime
                 var elapsed = 0f;
                 while (elapsed < fadeDuration)
                 {
-                    if (source != _activeBgmSource || _currentBgmResourcePath != resourcePath || source.clip != clip || nextSource.clip != clip)
+                    if (source != _activeBgmSource || _currentBgmClipKey != clipKey || source.clip != clip || nextSource.clip != clip)
                     {
                         nextSource.Stop();
                         nextSource.clip = null;
@@ -333,12 +404,21 @@ namespace SameGame.Runtime
                 StopCoroutine(_bgmSwitchRoutine);
                 _bgmSwitchRoutine = null;
             }
+
+            if (_bgmLoadRoutine != null)
+            {
+                StopCoroutine(_bgmLoadRoutine);
+                _bgmLoadRoutine = null;
+            }
+
+            _loadingBgmClipKey = string.Empty;
         }
 
         private void StopStageBgm()
         {
             StopBgmCoroutines();
-            _currentBgmResourcePath = string.Empty;
+            _requestedBgmClipKey = string.Empty;
+            _currentBgmClipKey = string.Empty;
 
             if (_bgmPrimarySource != null)
             {
@@ -353,6 +433,23 @@ namespace SameGame.Runtime
                 _bgmSecondarySource.clip = null;
                 _bgmSecondarySource.volume = 0f;
             }
+        }
+
+        private static string BuildStreamingAssetUrl(string relativePath)
+        {
+            var normalizedRelativePath = relativePath.Replace("\\", "/");
+            var basePath = Application.streamingAssetsPath;
+            if (string.IsNullOrWhiteSpace(basePath))
+            {
+                return normalizedRelativePath;
+            }
+
+            if (basePath.Contains("://", StringComparison.Ordinal) || basePath.StartsWith("jar:", StringComparison.OrdinalIgnoreCase))
+            {
+                return basePath.TrimEnd('/') + "/" + normalizedRelativePath;
+            }
+
+            return new Uri(Path.Combine(basePath, normalizedRelativePath)).AbsoluteUri;
         }
 
         private void PlayBlockClearSe(int scoreDelta)

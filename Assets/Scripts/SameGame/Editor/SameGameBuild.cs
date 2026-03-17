@@ -12,6 +12,14 @@ namespace SameGame.Editor
 
         public static void BuildWebGL()
         {
+            var backupScenePath = Path.Combine(Directory.GetCurrentDirectory(), "Temp", "__Backupscenes");
+            if (Directory.Exists(backupScenePath))
+            {
+                Directory.Delete(backupScenePath, true);
+            }
+
+            AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+
             var scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)
@@ -23,6 +31,11 @@ namespace SameGame.Editor
             }
 
             var outputPath = Path.Combine(Directory.GetCurrentDirectory(), WebGlOutputPath);
+            if (Directory.Exists(outputPath))
+            {
+                Directory.Delete(outputPath, true);
+            }
+
             Directory.CreateDirectory(outputPath);
 
             var options = new BuildPlayerOptions

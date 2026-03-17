@@ -194,7 +194,7 @@ namespace SameGame.Runtime
                 new BoardConfig(15, 10, 4, 560),
                 "Stage Character 1",
                 "Reward CG 01",
-                "Audio/Bgm/stage_default",
+                DefaultStageBgmClipKey,
                 DefaultStageBackgroundVideoPath,
                 new Color(0.96f, 0.48f, 0.61f, 1f),
                 new Color(1f, 0.83f, 0.59f, 1f)));
@@ -204,7 +204,7 @@ namespace SameGame.Runtime
                 new BoardConfig(15, 10, 4, 620),
                 "Stage Character 2",
                 "Reward CG 02",
-                "Audio/Bgm/stage_default",
+                DefaultStageBgmClipKey,
                 DefaultStageBackgroundVideoPath,
                 new Color(0.79f, 0.37f, 0.87f, 1f),
                 new Color(0.45f, 0.74f, 1f, 1f)));
@@ -214,7 +214,7 @@ namespace SameGame.Runtime
                 new BoardConfig(15, 10, 4, 680),
                 "Stage Character 3",
                 "Reward CG 03",
-                "Audio/Bgm/stage_default",
+                DefaultStageBgmClipKey,
                 DefaultStageBackgroundVideoPath,
                 new Color(0.31f, 0.72f, 0.82f, 1f),
                 new Color(0.18f, 0.27f, 0.55f, 1f)));
@@ -224,7 +224,7 @@ namespace SameGame.Runtime
                 new BoardConfig(15, 10, 4, 740),
                 "Stage Character 4",
                 "Reward CG 04",
-                "Audio/Bgm/stage_default",
+                DefaultStageBgmClipKey,
                 DefaultStageBackgroundVideoPath,
                 new Color(0.97f, 0.59f, 0.33f, 1f),
                 new Color(0.87f, 0.25f, 0.33f, 1f)));
@@ -234,7 +234,7 @@ namespace SameGame.Runtime
                 new BoardConfig(15, 10, 4, 800),
                 "Stage Character 5",
                 "Reward CG Final",
-                "Audio/Bgm/stage_default",
+                DefaultStageBgmClipKey,
                 DefaultStageBackgroundVideoPath,
                 new Color(0.95f, 0.35f, 0.52f, 1f),
                 new Color(0.26f, 0.12f, 0.41f, 1f)));
