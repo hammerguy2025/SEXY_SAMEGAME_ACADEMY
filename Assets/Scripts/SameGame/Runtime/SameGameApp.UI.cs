@@ -12,6 +12,7 @@ namespace SameGame.Runtime
         private const string TitleBackgroundResourcePath = "Images/Main_menu/main_bg";
         private const string TitleLogoResourcePath = "Title/Title_Logo";
         private const string EnglishTitleLogoResourcePath = "Title/Title_Logo_EN";
+        private const string UiFontResourcePath = "Fonts/MPLUS1p-Regular";
         private const string LocalizedButtonResourceRoot = "Button";
 
         private readonly Dictionary<string, Sprite> _localizedButtonSpriteCache = new Dictionary<string, Sprite>();
@@ -102,7 +103,7 @@ namespace SameGame.Runtime
         private void EnsureUi()
         {
             EnsureEventSystem();
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _font = Resources.Load<Font>(UiFontResourcePath) ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
             var canvasObject = new GameObject("SameGameCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasObject.transform.SetParent(transform, false);
