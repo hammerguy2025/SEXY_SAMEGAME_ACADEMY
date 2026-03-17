@@ -284,6 +284,8 @@ namespace SameGame.Runtime
             {
                 _titleFullscreenButtonLabel.text = GetTitleFullscreenButtonLabel(isFullscreen);
             }
+
+            RefreshTitleFullscreenButtonVisual(isFullscreen);
         }
 
         private void LayoutTitleButton(Button button, float topOffset)
@@ -338,6 +340,67 @@ namespace SameGame.Runtime
 
             ToggleBrowserFullscreen();
             RefreshTitlePlatformButtons(true);
+        }
+
+        private void RefreshTitleFullscreenButtonVisual(bool isFullscreen)
+        {
+            if (_titleFullscreenButton == null)
+            {
+                return;
+            }
+
+            var image = _titleFullscreenButton.GetComponent<Image>();
+            if (image == null)
+            {
+                return;
+            }
+
+            var label = _titleFullscreenButtonLabel;
+            var assetKey = isFullscreen ? "フルスクリーン解除" : "フルスクリーン";
+            var fallbackColor = new Color(0.2f, 0.29f, 0.46f, 1f);
+            var sprite = LoadLocalizedButtonSprite(assetKey);
+            if (sprite != null)
+            {
+                image.sprite = sprite;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = true;
+                image.color = Color.white;
+                image.rectTransform.localScale = Vector3.one * 0.95f;
+
+                if (label != null)
+                {
+                    label.gameObject.SetActive(false);
+                }
+
+                var colors = _titleFullscreenButton.colors;
+                colors.normalColor = Color.white;
+                colors.highlightedColor = new Color(0.94f, 0.94f, 0.94f, 1f);
+                colors.pressedColor = new Color(0.82f, 0.82f, 0.82f, 1f);
+                colors.selectedColor = colors.highlightedColor;
+                colors.disabledColor = new Color(1f, 1f, 1f, 0.4f);
+                _titleFullscreenButton.colors = colors;
+                return;
+            }
+
+            image.sprite = null;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = false;
+            image.color = fallbackColor;
+            image.rectTransform.localScale = Vector3.one;
+
+            if (label != null)
+            {
+                label.text = GetTitleFullscreenButtonLabel(isFullscreen);
+                label.gameObject.SetActive(true);
+            }
+
+            var fallbackColors = _titleFullscreenButton.colors;
+            fallbackColors.normalColor = fallbackColor;
+            fallbackColors.highlightedColor = Color.Lerp(fallbackColor, Color.white, 0.15f);
+            fallbackColors.pressedColor = Color.Lerp(fallbackColor, Color.black, 0.2f);
+            fallbackColors.selectedColor = fallbackColors.highlightedColor;
+            fallbackColors.disabledColor = new Color(fallbackColor.r, fallbackColor.g, fallbackColor.b, 0.35f);
+            _titleFullscreenButton.colors = fallbackColors;
         }
 
         private void TryCreateTitleLogo(Transform parent)

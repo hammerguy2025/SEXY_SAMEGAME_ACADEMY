@@ -198,9 +198,10 @@ namespace SameGame.Runtime
                 PlayerPrefs.GetInt(SelectedCharacterPrefKey, 0),
                 0,
                 Mathf.Max(0, _characters.Count - 1));
-            const float defaultVolume = 0.5f;
-            _bgmVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(BgmVolumePrefKey, defaultVolume));
-            _seVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SeVolumePrefKey, defaultVolume));
+            const float defaultBgmVolume = 0.2f;
+            const float defaultSeVolume = 0.5f;
+            _bgmVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(BgmVolumePrefKey, defaultBgmVolume));
+            _seVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SeVolumePrefKey, defaultSeVolume));
             if (PlayerPrefs.HasKey(LanguagePrefKey))
             {
                 _languageCode = NormalizeLanguageCode(PlayerPrefs.GetString(LanguagePrefKey, "ja"));
