@@ -1,4 +1,3 @@
-using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
@@ -136,8 +135,7 @@ namespace SameGame.Runtime
                 return string.Empty;
             }
 
-            var fullPath = Path.Combine(Application.streamingAssetsPath, relativePath);
-            return File.Exists(fullPath) ? fullPath : string.Empty;
+            return BuildStreamingAssetUrl(relativePath);
         }
 
         private void HandleStageVideoPrepared(VideoPlayer player)
