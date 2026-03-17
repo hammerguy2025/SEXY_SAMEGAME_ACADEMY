@@ -1,0 +1,37 @@
+# Unity generated folders
+/Library/
+/Logs/
+/Temp/
+/Obj/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+
+# Build outputs
+/Build/
+/BUILD/
+/Builds/
+
+# IDE and generated project files
+/.vs/
+/*.csproj
+/*.sln
+/*.user
+/*.pidb
+/*.suo
+/*.tmp
+/*.pdb
+/*.mdb
+/*.opendb
+/*.VC.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local source asset backups not needed for runtime
+/Pictures/
+/sounds/
+
+# Local helper logs
+/webgl_build.log
